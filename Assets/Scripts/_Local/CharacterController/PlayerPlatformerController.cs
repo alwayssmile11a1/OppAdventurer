@@ -26,9 +26,9 @@ public class PlayerPlatformerController : MonoBehaviour
     private PlatformEffector2D m_PlatformEffector2D;
 
     private int m_HashGroundedPara = Animator.StringToHash("Grounded");
-    private int m_HashRunPara = Animator.StringToHash("Run");
+    private int m_HashVelocityXPara = Animator.StringToHash("VelocityX");
+    private int m_HashVelocityYPara = Animator.StringToHash("VelocityY");
     private int m_HashHurtPara = Animator.StringToHash("Hurt");
-    private int m_HashOnLadderPara = Animator.StringToHash("OnLadder");
 
     private bool m_IsOnLadder = false;
     private bool m_TriggerUse = false;
@@ -58,52 +58,31 @@ public class PlayerPlatformerController : MonoBehaviour
     private void TakeAction()
     {
 
-        if (!m_IsOnLadder)
+        if (CheckForObstacle(0.5f, 0.2f))
         {
-            if (CheckForObstacle(0.5f, 0.2f))
+            if (m_CanJump)
             {
-                if (m_CanJump)
-                {
-                    Jump();
-                }
+                Jump();
             }
+        }
 
+ 
+        //Reduce jump speed
+        JumpAbortReduction();
 
-            //Reduce jump speed
-            JumpAbortReduction();
-
-            //Vertical movement
-            if (!m_CharacterController2D.IsGrounded)
-            {
-                AirborneVerticalMovement();
-            }
-            else
-            {
-                GroundedVerticalMovement();
-            }
-
-            //Set horizontal movement
-            SetHorizontalMovement(m_SpriteRenderer.flipX ? -speed : speed);
+        //Vertical movement
+        if (!m_CharacterController2D.IsGrounded)
+        {
+            AirborneVerticalMovement();
         }
         else
         {
-            SetHorizontalMovement(0);
-            if (!m_TriggerUse)
-            {
-                m_PlatformEffector2D = m_CharacterController2D.GroundColliders[0].GetComponent<PlatformEffector2D>();
-                if (m_PlatformEffector2D)
-                {
-                    m_PlatformEffector2D.rotationalOffset = 180;
-                }
-                //m_CharacterController2D.GroundColliders[0].GetComponent<PlatformEffector2D>().rotationalOffset = 
-                m_TriggerUse = true;
-                m_Animator.SetTrigger("use");
-                m_Animator.SetBool(m_HashOnLadderPara, true);
-                m_Animator.SetFloat("velocityY", climbSpeed);
-                float vy = m_CharacterController2D.GroundColliders[0].GetComponent<PlatformEffector2D>() ? -climbSpeed : climbSpeed;
-                SetVerticalMovement(vy);
-            }
+            GroundedVerticalMovement();
         }
+
+        //Set horizontal movement
+        SetHorizontalMovement(m_SpriteRenderer.flipX ? -speed : speed);
+
 
 
         //Move
@@ -130,7 +109,8 @@ public class PlayerPlatformerController : MonoBehaviour
     private void Animate()
     {
         m_Animator.SetBool(m_HashGroundedPara, m_CharacterController2D.IsGrounded);
-        m_Animator.SetFloat(m_HashRunPara, Mathf.Abs(m_MoveVector.x));
+        m_Animator.SetFloat(m_HashVelocityXPara, Mathf.Abs(m_MoveVector.x));
+        m_Animator.SetFloat(m_HashVelocityYPara, m_MoveVector.y);
     }
 
     private void Move()
@@ -151,20 +131,6 @@ public class PlayerPlatformerController : MonoBehaviour
 
         SetVerticalMovement(jump);
 
-    }
-
-    private void EndClimbing()
-    {
-        m_IsOnLadder = false;
-        m_TriggerUse = false;
-        if (m_PlatformEffector2D)
-        {
-            m_PlatformEffector2D.rotationalOffset = 0;
-        }
-        m_Animator.ResetTrigger("use");
-        m_Animator.SetBool(m_HashOnLadderPara, false);
-        m_Animator.SetFloat("velocityY", 0);
-        SetVerticalMovement(0);
     }
 
     public void SetMoveVector(Vector2 newMoveVector)
@@ -259,18 +225,6 @@ public class PlayerPlatformerController : MonoBehaviour
     {
         //if (landAudioPlayer != null)
         //    landAudioPlayer.PlayRandomSound();
-    }
-
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.tag.Equals("Ladder"))
-        {
-            m_IsOnLadder = true;
-        }
-        if (collision.tag.Equals("EndLadder"))
-        {
-            EndClimbing();
-        }
     }
 
 
